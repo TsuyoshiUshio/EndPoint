@@ -6,25 +6,33 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Newtonsoft.Json;
+using System;
 
 namespace EndPoint
 {
     public static class Function1
     {
-        [FunctionName("Function1")]
-        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequest req, TraceWriter log)
+        private static System.Random r = new System.Random(1000); // Seed is the same
+
+        // if you pass the provability (%), it returns false according to the probability randomly
+        private static Boolean sortingHat(int probability)
         {
-            log.Info("C# HTTP trigger function processed a request.");
 
-            string name = req.Query["name"];
+            var value = r.Next(100);
+            return value < probability;
+        }
 
-            string requestBody = new StreamReader(req.Body).ReadToEnd();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
-
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+        private static IActionResult GetResult(string label, HttpRequest req, TraceWriter log)
+        {
+            log.Info($"{label}: health check");
+            return sortingHat(95) ? (ActionResult)new OkObjectResult("Alive")
+                : new BadRequestObjectResult("Dead");
+        }
+      
+        [FunctionName("Team")]
+        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "team01/health")]HttpRequest req, TraceWriter log)
+        {
+            return GetResult("Team01", req, log);
         }
     }
 }
